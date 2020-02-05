@@ -30,6 +30,14 @@ public class SimBank
     //ArrayList of NOT SERVED customers
     private ArrayList<Customer> not_succ_serve = new ArrayList<Customer>();
 
+    //arraylist of queues representing each line
+    ArrayList<Queue> lines = new ArrayList<Queue>();
+    //make an Array of Tellers
+    Teller[] tellers;
+
+    //this is a variable for counting how many people must wait in a queue(dont go straight to a teller)
+    private int waiters = 0;
+
     public SimBank(int ntell, boolean qtype, double hrs, double arr_rate, double t_min, int maxq, long seed)
     {
         this.ntell = ntell;
@@ -50,27 +58,27 @@ public class SimBank
         R = new RandDist(seed);
 
         max_per_line = maxq/numOfQs;
-    }
 
-    public void runSimulation()
-    {
-    //////////////////////////// BANK SETUP /////////////////////////
-        //arraylist of queues representing each line
-        ArrayList<Queue> lines = new ArrayList<Queue>();
+
         //fill arraylist with linklists to represent each queue
         for (int i = 0; i <numOfQs;i++)
         {
             lines.add(new LinkedList<Customer>());
         }
 
-        //make an Array of Tellers
-        Teller[] tellers = new Teller[lines.size()];
+        //make teller at the right size
+         tellers = new Teller[ntell];
+
         //fill teller array with tellers
         for (int i = 0; i< tellers.length; i++)
         {
             tellers[i] = new Teller(i);
         }
+    }
 
+    public void runSimulation()
+    {
+    //////////////////////////// BANK SETUP /////////////////////////
         //current time is 0, as we havent started yet
         double curr_time = 0.0;
         //minutes bank is open
@@ -111,8 +119,6 @@ public class SimBank
             // occur. The time in between can be skipped because
             // nothing is overtly occurring / changing during this
             // time.
-            //System.out.printf("\tEvent at %6.2f ", curr.get_e_time());
-
             ///////////////////////////////////////////ARRIVAL EVENT/////////////////////////////////////
             // Check to see the type of event using instanceof operator
             if (curr instanceof ArrivalEvent)
@@ -125,12 +131,11 @@ public class SimBank
                 //System.out.print(" is ArrivalEvent");
 
                 //make the customer object for this arrival event
-                Customer curr_cust = new Customer(custID,next_arr_min);
+                Customer curr_cust = new Customer(custID,curr_time);
 
                 //calculate the service interation time
                 //this can be generated before actual interaction happens e.g., when a customer is put in a line
                 double serve_time = R.exponential(trans_rate);
-                //System.out.printf(": Service time: %6.2f\n", serve_time);
                 //give customer object its service time
                 curr_cust.setServiceT(serve_time);
 
@@ -192,6 +197,7 @@ public class SimBank
                         //add the customer to the shortest
                         lines.get(index_of_shortest_line).offer(curr_cust);
                         curr_cust.setQueue(index_of_shortest_line);
+                        waiters++;
 
                         ////////////////////////// END QUEUE STUFF ////////////////////////////////////////
                     }
@@ -226,29 +232,53 @@ public class SimBank
                 int freed_teller = ((CompletionLocEvent)curr).getLoc();
                 tellers[freed_teller].removeCust();
 
-                //check if theres another customer in this queue
-                if (lines.get(freed_teller).size()>0)
+                //find correct bank scenario
+                if (ntell == lines.size()) {
+                    if (lines.get(freed_teller).size() > 0) {
+                        //TODO this seems fishy
+                        Customer curr_cust = (Customer) lines.get(freed_teller).poll();
+                        //set start service time to now
+                        curr_cust.setStartT(curr_time);
+
+                        //add customer to teller
+                        tellers[freed_teller].addCust(curr_cust);
+                        //add teller to custpmer
+                        curr_cust.setTeller(freed_teller);
+
+                        //calculate the finish time of the customer
+                        double finish_time = curr_time + curr_cust.getServiceT();
+                        //give customer their completion time
+                        curr_cust.setEndT(finish_time);
+                        //make a completion loc event at finish time with correct teller
+                        CompletionLocEvent next_complete = new CompletionLocEvent(finish_time, freed_teller);
+                        //System.out.printf("\t\tAdding CompletionEvent for time: %6.2f \n", finish_time);
+                        FEL.offer(next_complete);  // Add CompletionEvent to PQ
+                        //add customer to completed arraylist
+                        succ_serve.add(curr_cust);
+                    }
+                }
+                else
                 {
-                    //TODO this seems fishy
-                    Customer curr_cust = (Customer) lines.get(freed_teller).poll();
-                    //set start service time to now
-                    curr_cust.setStartT(curr_time);
+                    if(lines.get(0).size()>0)
+                    {
+                        Customer curr_cust = (Customer) lines.get(0).poll();
+                        curr_cust.setStartT(curr_time);
 
-                    //add customer to teller
-                    tellers[freed_teller].addCust(curr_cust);
-                    //add teller to custpmer
-                    curr_cust.setTeller(freed_teller);
-
-                    //calculate the finish time of the customer
-                    double finish_time = curr_time + curr_cust.getServiceT();
-                    //give customer their completion time
-                    curr_cust.setEndT(finish_time);
-                    //make a completion loc event at finish time with correct teller
-                    CompletionLocEvent next_complete = new CompletionLocEvent(finish_time, freed_teller);
-                    //System.out.printf("\t\tAdding CompletionEvent for time: %6.2f \n", finish_time);
-                    FEL.offer(next_complete);  // Add CompletionEvent to PQ
-                    //add customer to completed arraylist
-                    succ_serve.add(curr_cust);
+                        //add customer to teller
+                        tellers[freed_teller].addCust(curr_cust);
+                        //add teller to custpmer
+                        curr_cust.setTeller(freed_teller);
+                        //calculate the finish time of the customer
+                        double finish_time = curr_time + curr_cust.getServiceT();
+                        //give customer their completion time
+                        curr_cust.setEndT(finish_time);
+                        //make a completion loc event at finish time with correct teller
+                        CompletionLocEvent next_complete = new CompletionLocEvent(finish_time, freed_teller);
+                        //System.out.printf("\t\tAdding CompletionEvent for time: %6.2f \n", finish_time);
+                        FEL.offer(next_complete);  // Add CompletionEvent to PQ
+                        //add customer to completed arraylist
+                        succ_serve.add(curr_cust);
+                    }
                 }
 
             }
@@ -266,9 +296,22 @@ public class SimBank
         for (int i = 0;i<succ_serve.size();i++)
         {
             Customer curr_cust = succ_serve.get(i);
-            System.out.println(curr_cust.getId() + "    " + curr_cust.getArrivalT() + " " + curr_cust.getServiceT() + "    " +
-                    curr_cust.getQueue() + "    " + curr_cust.getTeller() + "   " + curr_cust.getStartT() + "   " +
-                    curr_cust.getWaitT() + "    " + curr_cust.getEndT() + "    " +curr_cust.getInSystem());
+            System.out.print("  ");
+            System.out.print(curr_cust.getId() + "    ");
+            System.out.printf("%.2f",curr_cust.getArrivalT());
+            System.out.print("      ");
+            System.out.printf("%.2f",curr_cust.getServiceT());
+            System.out.print("      ");
+            System.out.print(curr_cust.getQueue() + "      ");
+            System.out.print(curr_cust.getTeller()+ "     ");
+            System.out.printf("%.2f",curr_cust.getStartT() );
+            System.out.print("      ");
+            System.out.printf("%.2f",curr_cust.getWaitT());
+            System.out.print("      ");
+            System.out.printf("%.2f",curr_cust.getEndT() );
+            System.out.print("      ");
+            System.out.printf("%.2f",curr_cust.getInSystem());
+            System.out.print("\n");
         }
 
 
@@ -283,8 +326,100 @@ public class SimBank
         for (int i = 0; i<not_succ_serve.size();i++)
         {
             Customer curr_cust = not_succ_serve.get(i);
-            System.out.println(curr_cust.getId() + "    " + curr_cust.getArrivalT() + "    " + curr_cust.getServiceT());
+            System.out.print(curr_cust.getId() + "    ");
+            System.out.printf("%.2f",curr_cust.getArrivalT());
+            System.out.print("      ");
+            System.out.printf("%.2f",curr_cust.getServiceT());
+            System.out.print("\n");
         }
+
+
+        //////////////////////////////STATS ////////////////////////////////////
+
+
+
+        //Number of tellers
+        System.out.println("Number of Tellers: " + tellers.length);
+        //Number of Qs
+        System.out.println("Number of Queues: " + numOfQs);
+        //max number allowed to wait
+        System.out.println("Max number allowed to wait: " + maxq);
+        //Customer arrival rate (per hr):
+        System.out.println("Customer arrival rate (per hr): " + arr_rate);
+        //Customer service time (ave min)
+        System.out.println("Customer service time (ave min): " + t_min);
+        //num of customers who arrives
+        System.out.println("Number of customers arrived: " + (succ_serve.size()+not_succ_serve.size()));
+        //number of customers served
+        System.out.println("Number of customers served: " + succ_serve.size());
+        //Num. Turned Away
+        System.out.println("Num. Turned Away: " + not_succ_serve.size());
+        //num who waited
+        System.out.println("Num. who waited: " + waiters);
+        //average wait INCLUDES TURNED AWAY PEOPLE
+        double tot_waiting_time = 0;
+        for (int i=0;i<succ_serve.size();i++)
+        {
+            Customer curr_cust = succ_serve.get(i);
+            tot_waiting_time += curr_cust.getWaitT();
+        }
+        int total_people = succ_serve.size()+not_succ_serve.size();
+        double ave_wait_time = tot_waiting_time/total_people;
+        System.out.println("Average Wait: " + ave_wait_time);
+        //Max wait
+        double highest_wait = 0.0;
+        for (int i=0;i<succ_serve.size();i++)
+        {
+            if (succ_serve.get(i).getWaitT() > highest_wait)
+            {
+                highest_wait = succ_serve.get(i).getWaitT();
+            }
+        }
+        System.out.println("Max Wait: " + highest_wait);
+        //Standard Deviation
+        ArrayList<Double> blech = new ArrayList<Double>();
+        for (int i=0;i<succ_serve.size();i++)
+        {
+            //make an array of the wait times-mean^2
+            blech.add((succ_serve.get(i).getWaitT()-ave_wait_time)*(succ_serve.get(i).getWaitT()-ave_wait_time));
+        }
+            //sum of squared differences
+        double array_total = 0.0;
+        for (int i=0;i<blech.size();i++)
+        {
+            array_total += blech.get(i);
+        }
+        double deviance = array_total/succ_serve.size();
+        System.out.println("Std. Dev. Wait: " + deviance);
+        //Average Service
+        double total_service_time = 0;
+        for (int i=0;i<succ_serve.size();i++)
+        {
+            total_service_time += succ_serve.get(i).getServiceT();
+        }
+        double average_serv_time = total_service_time/succ_serve.size();
+        System.out.println("Ave. Service: " + average_serv_time);
+        //Average Waiter Wait
+        for (int i=0;i<succ_serve.size();i++)
+        {
+            Customer curr_cust = succ_serve.get(i);
+            tot_waiting_time += curr_cust.getWaitT();
+        }
+        double ave_waiter_wait_time = tot_waiting_time/waiters;
+        System.out.println("Average Waiter Wait: " + ave_waiter_wait_time);
+        //average in system
+        double tot_in_system = 0;
+        for (int i=0;i<succ_serve.size();i++)
+        {
+            Customer curr_cust = succ_serve.get(i);
+            tot_in_system += curr_cust.getInSystem();
+        }
+        double ave_wait_in_system = tot_in_system/succ_serve.size();
+        System.out.println("Ave. in System: " + ave_wait_in_system);
+
+
+
+
     }
 
 }
