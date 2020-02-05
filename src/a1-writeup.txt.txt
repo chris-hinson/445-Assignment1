@@ -1,0 +1,16 @@
+1)
+While single-Queue and multi-Queue both have their pros and cons, single queue serves consistent, significantly lower
+wait times than its multiple queue counterpart, once the threshold of 4 or more tellers is reached.  In addition, the
+max wait time of single - queue is also consistently significantly lower.  At three or more tellers, single queue also
+turns away fewer customers than multi-queue, until 5 or more tellers, when both always turn away 0.  The overall average
+ time in system is also lower for single queue above 3 tellers.  While single queue means more people do wait in a line,
+  as opposed to walking straight up to a teller, this experience is much quicker and less frustrated, pleasing the
+  customer, and above 2 cashiers, turns away less customers, meaning less lost business and less lost revenue.
+
+2)
+	Drawing upon our observations from question one, I can definitively say that for 3 or more tellers, single queue is
+	the vastly superior option, offering lower average AND maximum wait times.  With that said, at 1 teller, the options
+	 are identical and as such, the decision is arbitrary.  At 2 tellers, multi-queue edges out single Queue in nearly
+	 every category, even if only by a few customers or seconds.  Keeping all this in mind, I would choose a single
+	 queue system for my bank, as above 3 tellers (the most common scenario) the performance is vastly superior, and at
+	 2 tellers, the losses are minimal, and at 1, the experience is a nightmare no matter the queue system.
