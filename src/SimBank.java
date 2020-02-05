@@ -396,6 +396,7 @@ public class SimBank
             array_total += blech.get(i);
         }
         double deviance = array_total/succ_serve.size();
+        deviance = Math.sqrt(deviance);
         System.out.println("Std. Dev. Wait: " + deviance);
 
         //Average Service
