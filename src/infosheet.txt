@@ -1,0 +1,28 @@
+Name: Christopher Hinson
+Assignment #: 2
+Lecture Day and Time: TT 1PM
+Rec Day and Time: M 3PM
+Program Due Date: 2/4/20
+Handed in Date: 2/4/20
+Source Code filenames:
+    ArrivalEvent.java
+    Assig1.java
+    CompletionEvent.java
+    CompletionLocEvent.java
+    Customer.java
+    RandDist.java
+    RandTest.java
+    SimBank.java
+    SimEvent.java
+    Teller.java
+Input Output Filenames:
+    a1-out1.txt
+    a1-out2.txt
+    a1-out3.txt
+    a1-out4.txt
+    a1-out5.txt
+    a1-out6.txt
+Does your program compile without error?: yes
+Does your program run without error? : yes
+Additional Notes:
+    this file is my coversheet
