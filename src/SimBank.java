@@ -125,8 +125,6 @@ public class SimBank
             {
                 //increment customer ID
                 custID++;
-                //add one to people in bank
-                people_in_bank++;
                 //output arrivalevent
                 //System.out.print(" is ArrivalEvent");
 
@@ -139,8 +137,15 @@ public class SimBank
                 //give customer object its service time
                 curr_cust.setServiceT(serve_time);
 
+                //find people in bank M
+                people_in_bank = 0;
+                for (int i = 0; i<lines.size();i++)
+                {
+                    people_in_bank +=lines.get(i).size();
+                }
+
                 //only worry about tellers and or queues if under max people allowed in bank
-                if (people_in_bank+1 <=maxq) {
+                if (people_in_bank <maxq) {
                     //////////////////TELLER STUFF //////////////////////////
 
                     boolean teller_found = false;
@@ -179,7 +184,7 @@ public class SimBank
                     ////////////////////////// END TELLER STUFF ////////////////////////////////////
 
                     //we only do queue stuff if no teller has been found
-                    if (teller_found == false)
+                    if (!teller_found)
                     {
                         //////////////////////////// QUEUE STUFF ///////////////////////////////////////
                         //gets index of current shortest line
@@ -206,7 +211,6 @@ public class SimBank
                 //add customer to failed arraylist
                 {
                     not_succ_serve.add(curr_cust);
-                    people_in_bank--;
                 }
 
 
@@ -224,10 +228,6 @@ public class SimBank
             }
             else
             {
-                //System.out.println(" is a CompletionEvent");
-
-                people_in_bank--;
-
                 //free up teller
                 int freed_teller = ((CompletionLocEvent)curr).getLoc();
                 tellers[freed_teller].removeCust();
@@ -289,6 +289,9 @@ public class SimBank
     public void showResults()
     {
         /////////////////////Successful customers////////////////////////////////
+
+        System.out.println("Individual customer service information: \n");
+
         System.out.println("Customer  Arrival    Service  Queue  Teller  Time Serv  Time Cust  Time Serv  Time Spent ");
         System.out.println("   Id      Time       Time     Loc    Loc     Begins      Waits      Ends       in Sys   ");
         System.out.println("-----------------------------------------------------------------------------------------");
@@ -314,6 +317,7 @@ public class SimBank
             System.out.print("\n");
         }
 
+        System.out.print("\n\n\n");
 
         //////////////////// Non-successful/////////////////////////////
 
@@ -333,6 +337,7 @@ public class SimBank
             System.out.print("\n");
         }
 
+        System.out.print("\n\n\n");
 
         //////////////////////////////STATS ////////////////////////////////////
 
@@ -356,14 +361,14 @@ public class SimBank
         System.out.println("Num. Turned Away: " + not_succ_serve.size());
         //num who waited
         System.out.println("Num. who waited: " + waiters);
-        //average wait INCLUDES TURNED AWAY PEOPLE
+        //average wait
         double tot_waiting_time = 0;
         for (int i=0;i<succ_serve.size();i++)
         {
             Customer curr_cust = succ_serve.get(i);
             tot_waiting_time += curr_cust.getWaitT();
         }
-        int total_people = succ_serve.size()+not_succ_serve.size();
+        int total_people = succ_serve.size();
         double ave_wait_time = tot_waiting_time/total_people;
         System.out.println("Average Wait: " + ave_wait_time);
         //Max wait
@@ -376,6 +381,7 @@ public class SimBank
             }
         }
         System.out.println("Max Wait: " + highest_wait);
+
         //Standard Deviation
         ArrayList<Double> blech = new ArrayList<Double>();
         for (int i=0;i<succ_serve.size();i++)
@@ -391,6 +397,7 @@ public class SimBank
         }
         double deviance = array_total/succ_serve.size();
         System.out.println("Std. Dev. Wait: " + deviance);
+
         //Average Service
         double total_service_time = 0;
         for (int i=0;i<succ_serve.size();i++)
@@ -400,12 +407,16 @@ public class SimBank
         double average_serv_time = total_service_time/succ_serve.size();
         System.out.println("Ave. Service: " + average_serv_time);
         //Average Waiter Wait
+        double waiter_wait_time = 0;
         for (int i=0;i<succ_serve.size();i++)
         {
             Customer curr_cust = succ_serve.get(i);
-            tot_waiting_time += curr_cust.getWaitT();
+            if (curr_cust.getWaitT() != 0)
+            {
+                waiter_wait_time += curr_cust.getWaitT();
+            }
         }
-        double ave_waiter_wait_time = tot_waiting_time/waiters;
+        double ave_waiter_wait_time = waiter_wait_time/waiters;
         System.out.println("Average Waiter Wait: " + ave_waiter_wait_time);
         //average in system
         double tot_in_system = 0;
